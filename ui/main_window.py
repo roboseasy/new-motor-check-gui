@@ -4,21 +4,267 @@ from PyQt6.QtGui import QColor, QIntValidator
 from PyQt6.QtWidgets import (
     QComboBox,
     QFrame,
+    QGraphicsDropShadowEffect,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMessageBox,
     QProgressDialog,
     QPushButton,
     QSlider,
     QSpinBox,
+    QStatusBar,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
 from motor_controller import MotorController, MotorStatus
+
+# ── Design System Colors ──
+COLOR_HEADER = "#3B1D6B"
+COLOR_TEXT = "#2D2640"
+COLOR_ACCENT = "#7C5CBF"
+COLOR_ACCENT_HOVER = "#9578D3"
+COLOR_MUTED = "#A99BBF"
+COLOR_BG = "#F5F3F8"
+COLOR_CARD = "#FFFFFF"
+COLOR_CARD_BORDER = "#E8E3F0"
+COLOR_BAR_START = "#A78BDA"
+COLOR_BAR_END = "#C4B2EC"
+COLOR_SUCCESS = "#5BAD7A"
+COLOR_DANGER = "#E04848"
+
+# ── Global Stylesheet ──
+STYLESHEET = """
+/* ── Global ── */
+QMainWindow {
+    background-color: #F5F3F8;
+}
+QWidget#centralWidget {
+    background-color: #F5F3F8;
+}
+
+/* ── Header bar ── */
+QFrame#headerBar {
+    background-color: #3B1D6B;
+    border: none;
+    min-height: 48px;
+}
+QLabel#headerTitle {
+    color: rgba(255,255,255,0.95);
+    font-size: 16px;
+    font-weight: bold;
+}
+QLabel#headerSubtitle {
+    color: rgba(255,255,255,0.50);
+    font-size: 11px;
+}
+
+/* ── Card panels (QGroupBox) ── */
+QGroupBox {
+    background-color: #FFFFFF;
+    border: 1px solid #E8E3F0;
+    border-radius: 10px;
+    margin-top: 8px;
+    padding: 14px 12px 10px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #2D2640;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 3px 12px;
+    background-color: #7C5CBF;
+    color: rgba(255,255,255,0.92);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* ── Labels ── */
+QLabel {
+    color: #2D2640;
+    font-size: 12px;
+}
+QLabel#statusTitle {
+    color: #A99BBF;
+    font-size: 11px;
+    font-weight: 600;
+}
+QLabel#statusValue {
+    color: #7C5CBF;
+    font-size: 16px;
+    font-weight: bold;
+}
+QLabel#statusUnit {
+    color: #A99BBF;
+    font-size: 10px;
+}
+
+/* ── Buttons ── */
+QPushButton {
+    background-color: #7C5CBF;
+    color: rgba(255,255,255,0.92);
+    border: none;
+    border-radius: 6px;
+    padding: 7px 18px;
+    font-size: 12px;
+    font-weight: 600;
+}
+QPushButton:hover {
+    background-color: #9578D3;
+}
+QPushButton:pressed {
+    background-color: #3B1D6B;
+}
+QPushButton:disabled {
+    background-color: #E8E3F0;
+    color: #A99BBF;
+}
+QPushButton#connectBtn {
+    padding: 7px 24px;
+    font-size: 13px;
+}
+QPushButton#refreshBtn {
+    background-color: transparent;
+    color: #7C5CBF;
+    border: 1px solid #A99BBF;
+}
+QPushButton#refreshBtn:hover {
+    background-color: #7C5CBF;
+    color: white;
+    border-color: #7C5CBF;
+}
+QPushButton#refreshBtn:disabled {
+    background-color: transparent;
+    color: #E8E3F0;
+    border-color: #E8E3F0;
+}
+QPushButton#dangerBtn {
+    background-color: #E04848;
+}
+QPushButton#dangerBtn:hover {
+    background-color: #C53030;
+}
+
+/* ── ComboBox ── */
+QComboBox {
+    background-color: #FFFFFF;
+    border: 1px solid #E8E3F0;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #2D2640;
+    min-width: 140px;
+}
+QComboBox:focus {
+    border-color: #A99BBF;
+}
+QComboBox::drop-down {
+    border: none;
+    width: 28px;
+}
+QComboBox QAbstractItemView {
+    background-color: #FFFFFF;
+    border: 1px solid #E8E3F0;
+    border-radius: 4px;
+    selection-background-color: #7C5CBF;
+    selection-color: white;
+}
+QComboBox:disabled {
+    background-color: #F5F3F8;
+    color: #A99BBF;
+}
+
+/* ── SpinBox ── */
+QSpinBox {
+    background-color: #FFFFFF;
+    border: 1px solid #E8E3F0;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 12px;
+    color: #2D2640;
+    min-width: 70px;
+}
+QSpinBox:focus {
+    border-color: #A99BBF;
+}
+QSpinBox:disabled {
+    background-color: #F5F3F8;
+    color: #A99BBF;
+}
+
+/* ── Slider ── */
+QSlider::groove:horizontal {
+    background: #E8E3F0;
+    height: 6px;
+    border-radius: 3px;
+}
+QSlider::handle:horizontal {
+    background: #7C5CBF;
+    width: 16px;
+    height: 16px;
+    margin: -5px 0;
+    border-radius: 8px;
+}
+QSlider::handle:horizontal:hover {
+    background: #9578D3;
+}
+QSlider::sub-page:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #A78BDA, stop:1 #C4B2EC);
+    border-radius: 3px;
+}
+QSlider::groove:horizontal:disabled {
+    background: #F5F3F8;
+}
+QSlider::handle:horizontal:disabled {
+    background: #E8E3F0;
+}
+
+/* ── Status card frames ── */
+QFrame#statusCard {
+    background-color: #FFFFFF;
+    border: 1px solid #E8E3F0;
+    border-radius: 8px;
+}
+
+/* ── Log text ── */
+QTextEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #E8E3F0;
+    border-radius: 6px;
+    padding: 6px;
+    font-size: 11px;
+    color: #2D2640;
+    font-family: monospace;
+}
+
+/* ── Status bar ── */
+QStatusBar {
+    background-color: #3B1D6B;
+    color: rgba(255,255,255,0.55);
+    font-size: 11px;
+    padding: 3px 8px;
+}
+
+/* ── Progress dialog ── */
+QProgressDialog {
+    background-color: #F5F3F8;
+}
+"""
+
+
+def _add_shadow(widget: QWidget) -> None:
+    shadow = QGraphicsDropShadowEffect(widget)
+    shadow.setBlurRadius(20)
+    shadow.setOffset(0, 4)
+    shadow.setColor(QColor(0, 0, 0, 25))
+    widget.setGraphicsEffect(shadow)
 
 
 class ScanWorker(QThread):
@@ -46,33 +292,75 @@ class ScanWorker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("STS3215 Motor Test")
-        self.setMinimumSize(600, 700)
+        self.setWindowTitle("STS3215 Motor Test — RoboSEasy")
+        self.setMinimumSize(780, 860)
+        self.setStyleSheet(STYLESHEET)
 
         self._controller = MotorController()
         self._current_motor_id: int | None = None
         self._monitoring = False
 
         central = QWidget()
+        central.setObjectName("centralWidget")
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
-        layout.setSpacing(8)
+        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-        layout.addWidget(self._build_connection_panel())
-        layout.addWidget(self._build_motor_select_panel())
-        layout.addWidget(self._build_control_panel())
-        layout.addWidget(self._build_status_panel())
-        layout.addWidget(self._build_log_panel())
+        # Header
+        layout.addWidget(self._build_header())
+
+        # Body with margins
+        body = QVBoxLayout()
+        body.setSpacing(8)
+        body.setContentsMargins(16, 8, 16, 8)
+
+        body.addWidget(self._build_connection_panel())
+        body.addWidget(self._build_motor_select_panel())
+        body.addWidget(self._build_id_setup_panel())
+        body.addWidget(self._build_control_panel())
+        body.addWidget(self._build_status_panel())
+        body.addWidget(self._build_log_panel())
+
+        layout.addLayout(body)
+        layout.addStretch()
+
+        # Status bar
+        status_bar = QStatusBar()
+        status_bar.showMessage("STS3215 Motor Test Tool — RoboSEasy")
+        self.setStatusBar(status_bar)
 
         self._poll_timer = QTimer()
         self._poll_timer.timeout.connect(self._poll_status)
 
         self._set_controls_enabled(False)
 
+    # ── Header ──
+
+    def _build_header(self) -> QFrame:
+        header = QFrame()
+        header.setObjectName("headerBar")
+        header.setFixedHeight(48)
+        h = QHBoxLayout(header)
+        h.setContentsMargins(16, 0, 16, 0)
+
+        title = QLabel("STS3215 Motor Test")
+        title.setObjectName("headerTitle")
+        h.addWidget(title)
+
+        h.addStretch()
+
+        subtitle = QLabel("Faulhaber STS3215 Servo Motor Control")
+        subtitle.setObjectName("headerSubtitle")
+        h.addWidget(subtitle)
+
+        return header
+
     # ── Connection Panel ──
 
     def _build_connection_panel(self) -> QGroupBox:
         group = QGroupBox("연결")
+        _add_shadow(group)
         h = QHBoxLayout(group)
 
         h.addWidget(QLabel("포트:"))
@@ -81,15 +369,17 @@ class MainWindow(QMainWindow):
         h.addWidget(self._port_combo)
 
         refresh_btn = QPushButton("새로고침")
+        refresh_btn.setObjectName("refreshBtn")
         refresh_btn.clicked.connect(self._refresh_ports)
         h.addWidget(refresh_btn)
 
         self._connect_btn = QPushButton("연결")
+        self._connect_btn.setObjectName("connectBtn")
         self._connect_btn.clicked.connect(self._toggle_connection)
         h.addWidget(self._connect_btn)
 
         self._status_led = QLabel("●")
-        self._status_led.setStyleSheet("color: red; font-size: 18px;")
+        self._status_led.setStyleSheet(f"color: {COLOR_DANGER}; font-size: 18px;")
         h.addWidget(self._status_led)
 
         h.addStretch()
@@ -100,6 +390,7 @@ class MainWindow(QMainWindow):
 
     def _build_motor_select_panel(self) -> QGroupBox:
         group = QGroupBox("모터 선택")
+        _add_shadow(group)
         h = QHBoxLayout(group)
 
         self._scan_btn = QPushButton("모터 스캔")
@@ -128,10 +419,41 @@ class MainWindow(QMainWindow):
         h.addStretch()
         return group
 
+    # ── ID Setup Panel ──
+
+    def _build_id_setup_panel(self) -> QGroupBox:
+        group = QGroupBox("모터 ID 설정")
+        _add_shadow(group)
+        h = QHBoxLayout(group)
+
+        h.addWidget(QLabel("현재 ID:"))
+        self._id_current_input = QSpinBox()
+        self._id_current_input.setRange(0, 253)
+        self._id_current_input.setValue(1)
+        h.addWidget(self._id_current_input)
+
+        arrow = QLabel("→")
+        arrow.setStyleSheet(f"color: {COLOR_ACCENT}; font-size: 16px; font-weight: bold;")
+        h.addWidget(arrow)
+
+        h.addWidget(QLabel("새 ID:"))
+        self._id_new_input = QSpinBox()
+        self._id_new_input.setRange(0, 253)
+        self._id_new_input.setValue(1)
+        h.addWidget(self._id_new_input)
+
+        self._id_change_btn = QPushButton("ID 변경")
+        self._id_change_btn.clicked.connect(self._change_motor_id)
+        h.addWidget(self._id_change_btn)
+
+        h.addStretch()
+        return group
+
     # ── Control Panel ──
 
     def _build_control_panel(self) -> QGroupBox:
         group = QGroupBox("모터 제어")
+        _add_shadow(group)
         v = QVBoxLayout(group)
 
         # Position
@@ -190,7 +512,7 @@ class MainWindow(QMainWindow):
         btn_row.addWidget(self._torque_btn)
 
         self._stop_btn = QPushButton("정지")
-        self._stop_btn.setStyleSheet("background-color: #e74c3c; color: white; font-weight: bold;")
+        self._stop_btn.setObjectName("dangerBtn")
         self._stop_btn.clicked.connect(self._stop_motor)
         btn_row.addWidget(self._stop_btn)
         btn_row.addStretch()
@@ -202,9 +524,11 @@ class MainWindow(QMainWindow):
 
     def _build_status_panel(self) -> QGroupBox:
         group = QGroupBox("상태 모니터")
+        _add_shadow(group)
         v = QVBoxLayout(group)
 
         grid = QHBoxLayout()
+        grid.setSpacing(8)
         self._status_labels: dict[str, QLabel] = {}
         for name, unit in [
             ("위치", ""),
@@ -215,21 +539,28 @@ class MainWindow(QMainWindow):
             ("부하", "%"),
         ]:
             frame = QFrame()
-            frame.setFrameStyle(QFrame.Shape.StyledPanel)
+            frame.setObjectName("statusCard")
+            frame.setMinimumWidth(100)
             fl = QVBoxLayout(frame)
+            fl.setContentsMargins(8, 8, 8, 8)
+            fl.setSpacing(2)
+
             title = QLabel(name)
+            title.setObjectName("statusTitle")
             title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            title.setStyleSheet("font-size: 11px; color: gray;")
             fl.addWidget(title)
+
             val = QLabel("--")
+            val.setObjectName("statusValue")
             val.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            val.setStyleSheet("font-size: 16px; font-weight: bold;")
             fl.addWidget(val)
+
             if unit:
                 unit_label = QLabel(unit)
+                unit_label.setObjectName("statusUnit")
                 unit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                unit_label.setStyleSheet("font-size: 10px; color: gray;")
                 fl.addWidget(unit_label)
+
             self._status_labels[name] = val
             grid.addWidget(frame)
         v.addLayout(grid)
@@ -251,6 +582,7 @@ class MainWindow(QMainWindow):
 
     def _build_log_panel(self) -> QGroupBox:
         group = QGroupBox("로그")
+        _add_shadow(group)
         v = QVBoxLayout(group)
         self._log_text = QTextEdit()
         self._log_text.setReadOnly(True)
@@ -270,16 +602,17 @@ class MainWindow(QMainWindow):
             self._read_once_btn, self._pos_slider, self._pos_input,
             self._speed_slider, self._speed_input, self._accel_slider,
             self._accel_input, self._motor_combo, self._motor_id_input,
+            self._id_current_input, self._id_new_input, self._id_change_btn,
         ]:
             w.setEnabled(enabled)
 
     def _update_status_display(self, status: MotorStatus):
-        self._status_labels["위치"].setText(str(status.position))
-        self._status_labels["속도"].setText(str(status.speed))
-        self._status_labels["온도"].setText(str(status.temperature))
+        self._status_labels["위치"].setText(str(round(status.position)))
+        self._status_labels["속도"].setText(str(round(status.speed)))
+        self._status_labels["온도"].setText(str(round(status.temperature)))
         self._status_labels["전압"].setText(f"{status.voltage:.1f}")
-        self._status_labels["전류"].setText(f"{status.current:.0f}")
-        self._status_labels["부하"].setText(str(status.load))
+        self._status_labels["전류"].setText(f"{round(status.current)}")
+        self._status_labels["부하"].setText(str(round(status.load)))
 
     # ── Slots ──
 
@@ -295,7 +628,7 @@ class MainWindow(QMainWindow):
         if self._controller.connected:
             self._controller.disconnect()
             self._connect_btn.setText("연결")
-            self._status_led.setStyleSheet("color: red; font-size: 18px;")
+            self._status_led.setStyleSheet(f"color: {COLOR_DANGER}; font-size: 18px;")
             self._set_controls_enabled(False)
             self._stop_monitoring()
             self._log("연결 해제됨")
@@ -307,7 +640,7 @@ class MainWindow(QMainWindow):
             try:
                 self._controller.connect(port)
                 self._connect_btn.setText("연결 해제")
-                self._status_led.setStyleSheet("color: #2ecc71; font-size: 18px;")
+                self._status_led.setStyleSheet(f"color: {COLOR_SUCCESS}; font-size: 18px;")
                 self._set_controls_enabled(True)
                 self._log(f"연결 성공: {port}")
             except Exception as e:
@@ -346,6 +679,30 @@ class MainWindow(QMainWindow):
         mid = self._motor_id_input.value()
         self._current_motor_id = mid
         self._log(f"모터 수동 선택: ID {mid}")
+
+    def _change_motor_id(self):
+        current_id = self._id_current_input.value()
+        new_id = self._id_new_input.value()
+        if current_id == new_id:
+            self._log("현재 ID와 새 ID가 동일합니다.")
+            return
+        reply = QMessageBox.question(
+            self,
+            "ID 변경 확인",
+            f"모터 ID를 {current_id} → {new_id} 로 변경하시겠습니까?\n"
+            "변경 후 모터를 재스캔해야 합니다.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            self._controller.change_id(current_id, new_id)
+            self._log(f"ID 변경 성공: {current_id} → {new_id}")
+            if self._current_motor_id == current_id:
+                self._current_motor_id = new_id
+                self._log(f"현재 선택 모터가 ID {new_id}로 업데이트됨")
+        except Exception as e:
+            self._log(f"ID 변경 실패: {e}")
 
     def _ping_motor(self):
         mid = self._motor_id_input.value()
@@ -460,8 +817,8 @@ class MainWindow(QMainWindow):
             self._log(
                 f"ID {self._current_motor_id} 상태: "
                 f"위치={status.position}, 속도={status.speed}, "
-                f"온도={status.temperature}°C, 전압={status.voltage}V, "
-                f"전류={status.current}mA, 부하={status.load}%"
+                f"온도={status.temperature}°C, 전압={status.voltage:.1f}V, "
+                f"전류={round(status.current)}mA, 부하={status.load}%"
             )
         except Exception as e:
             self._log(f"상태 읽기 실패: {e}")
