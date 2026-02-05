@@ -1,8 +1,8 @@
-# STS3215 Motor Test - 사용자 매뉴얼
+# STS3215 Motor Test & ID Setup - 사용자 매뉴얼
 
 ## 프로그램 소개
 
-STS3215 Motor Test는 Feetech STS3215 서보 모터를 제어하고 테스트하기 위한 애플리케이션입니다. 직관적인 인터페이스를 통해 모터 연결, 제어, 실시간 모니터링을 쉽게 수행할 수 있습니다.
+STS3215 Motor Test는 Feetech STS3215 서보 모터를 제어하고 테스트하기 위한 애플리케이션입니다. 직관적인 인터페이스를 통해 모터 연결, 제어, 실시간 모니터링, 모터 ID 설정을 쉽게 수행할 수 있습니다.
 
 ---
 
@@ -186,4 +186,4 @@ STS3215 Motor Test는 Feetech STS3215 서보 모터를 제어하고 테스트하
 
 ## 버전 정보
 
-STS3215 Motor Test GUI - RoboSEasy Edition
+STS3215 Motor Test & ID Setup - RoboSEasy Edition

@@ -375,7 +375,7 @@ class MainWindow(QMainWindow):
 
         h.addStretch()
 
-        subtitle = QLabel("Faulhaber STS3215 Servo Motor Control")
+        subtitle = QLabel("STS3215 Servo Motor Test & ID Setup")
         subtitle.setObjectName("headerSubtitle")
         h.addWidget(subtitle)
 
