@@ -94,3 +94,11 @@ class MotorController:
                 self._servo.StartServo(motor_id)
             else:
                 self._servo.StopServo(motor_id)
+
+    def change_id(self, current_id: int, new_id: int) -> None:
+        with self._lock:
+            if not self._servo:
+                raise ConnectionError("Not connected")
+            result = self._servo.ChangeId(current_id, new_id)
+            if result is not None:
+                raise RuntimeError(str(result))
