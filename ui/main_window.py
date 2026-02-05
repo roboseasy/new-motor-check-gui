@@ -650,18 +650,15 @@ class MainWindow(QMainWindow):
     def _refresh_ports(self):
         self._port_combo.clear()
         ports = serial.tools.list_ports.comports()
-        usb_port_idx = -1
-        for i, p in enumerate(ports):
+        # 내장 시리얼 포트(ttyS*) 제외, USB 시리얼만 표시
+        usb_ports = [p for p in ports if "/dev/ttyS" not in p.device]
+        for p in usb_ports:
             self._port_combo.addItem(f"{p.device} - {p.description}", p.device)
-            # USB 시리얼 포트 우선 선택 (ttyACM, ttyUSB, USB 포함)
-            if usb_port_idx < 0 and ("ttyACM" in p.device or "ttyUSB" in p.device or "USB" in p.description):
-                usb_port_idx = i
-        if ports:
-            # USB 포트가 있으면 해당 포트 선택, 없으면 첫 번째
-            self._port_combo.setCurrentIndex(usb_port_idx if usb_port_idx >= 0 else 0)
-            self._log(f"포트 발견: {len(ports)}개")
+        if usb_ports:
+            self._port_combo.setCurrentIndex(0)
+            self._log(f"USB 시리얼 포트 발견: {len(usb_ports)}개")
         else:
-            self._log("시리얼 포트를 찾을 수 없습니다.")
+            self._log("USB 시리얼 포트를 찾을 수 없습니다.")
 
     def _toggle_connection(self):
         if self._controller.connected:
@@ -682,6 +679,19 @@ class MainWindow(QMainWindow):
                 self._status_led.setStyleSheet(f"color: {COLOR_SUCCESS}; font-size: 18px;")
                 self._set_controls_enabled(True)
                 self._log(f"연결 성공: {port}")
+
+                # 내장 시리얼 포트(ttyS*)는 장치 없이도 열리므로 경고
+                if "/dev/ttyS" in port:
+                    msg = QMessageBox(self)
+                    msg.setIcon(QMessageBox.Icon.Warning)
+                    msg.setWindowTitle("포트 확인 필요")
+                    msg.setText(
+                        f"'{port}'는 내장 시리얼 포트입니다.\n\n"
+                        "USB 시리얼 어댑터(ttyUSB*, ttyACM*)가 연결되어 있는지 확인하세요.\n"
+                        "장치가 없어도 포트가 열릴 수 있습니다."
+                    )
+                    msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                    msg.exec()
             except Exception as e:
                 self._log(f"연결 실패: {e}")
 
