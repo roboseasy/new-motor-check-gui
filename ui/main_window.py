@@ -154,19 +154,31 @@ QPushButton#dangerBtn:hover {
 /* ── ComboBox ── */
 QComboBox {
     background-color: #FFFFFF;
-    border: 1px solid #E8E3F0;
+    border: 1px solid #A99BBF;
     border-radius: 6px;
     padding: 6px 12px;
+    padding-right: 30px;
     font-size: 12px;
     color: #2D2640;
     min-width: 140px;
 }
 QComboBox:focus {
-    border-color: #A99BBF;
+    border-color: #7C5CBF;
 }
 QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 24px;
     border: none;
-    width: 28px;
+    border-left: 1px solid #E8E3F0;
+    margin-right: 4px;
+}
+QComboBox::down-arrow {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #7C5CBF;
 }
 QComboBox QAbstractItemView {
     background-color: #FFFFFF;
@@ -178,12 +190,16 @@ QComboBox QAbstractItemView {
 QComboBox:disabled {
     background-color: #F5F3F8;
     color: #A99BBF;
+    border-color: #E8E3F0;
+}
+QComboBox:disabled::down-arrow {
+    border-top-color: #A99BBF;
 }
 
 /* ── SpinBox ── */
 QSpinBox {
     background-color: #FFFFFF;
-    border: 1px solid #E8E3F0;
+    border: 1px solid #A99BBF;
     border-radius: 6px;
     padding: 5px 8px;
     font-size: 12px;
@@ -191,14 +207,18 @@ QSpinBox {
     min-width: 70px;
 }
 QSpinBox:focus {
-    border-color: #A99BBF;
+    border-color: #7C5CBF;
 }
 QSpinBox:disabled {
     background-color: #F5F3F8;
     color: #A99BBF;
+    border-color: #E8E3F0;
 }
 
 /* ── Slider ── */
+QSlider {
+    min-height: 28px;
+}
 QSlider::groove:horizontal {
     background: #E8E3F0;
     height: 6px;
@@ -252,9 +272,14 @@ QStatusBar {
     padding: 3px 8px;
 }
 
-/* ── Progress dialog ── */
-QProgressDialog {
+/* ── Message Box ── */
+QMessageBox {
     background-color: #F5F3F8;
+}
+QMessageBox QLabel {
+    color: #2D2640;
+    font-size: 13px;
+    min-width: 300px;
 }
 """
 
@@ -293,7 +318,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("STS3215 Motor Test — RoboSEasy")
-        self.setMinimumSize(780, 860)
+        self.setMinimumSize(900, 900)
         self.setStyleSheet(STYLESHEET)
 
         self._controller = MotorController()
@@ -365,15 +390,15 @@ class MainWindow(QMainWindow):
 
         h.addWidget(QLabel("포트:"))
         self._port_combo = QComboBox()
-        self._port_combo.setMinimumWidth(200)
+        self._port_combo.setMinimumWidth(250)
         h.addWidget(self._port_combo)
 
-        refresh_btn = QPushButton("새로고침")
+        refresh_btn = QPushButton("🔄 새로고침")
         refresh_btn.setObjectName("refreshBtn")
         refresh_btn.clicked.connect(self._refresh_ports)
         h.addWidget(refresh_btn)
 
-        self._connect_btn = QPushButton("연결")
+        self._connect_btn = QPushButton("🔌 연결")
         self._connect_btn.setObjectName("connectBtn")
         self._connect_btn.clicked.connect(self._toggle_connection)
         h.addWidget(self._connect_btn)
@@ -393,28 +418,19 @@ class MainWindow(QMainWindow):
         _add_shadow(group)
         h = QHBoxLayout(group)
 
-        self._scan_btn = QPushButton("모터 스캔")
+        self._scan_btn = QPushButton("🔍 모터 스캔")
         self._scan_btn.clicked.connect(self._scan_motors)
         h.addWidget(self._scan_btn)
 
+        h.addWidget(QLabel("스캔된 모터:"))
         self._motor_combo = QComboBox()
-        self._motor_combo.setMinimumWidth(100)
+        self._motor_combo.setMinimumWidth(120)
         self._motor_combo.currentTextChanged.connect(self._on_motor_selected)
         h.addWidget(self._motor_combo)
 
-        h.addWidget(QLabel("ID 직접입력:"))
-        self._motor_id_input = QSpinBox()
-        self._motor_id_input.setRange(1, 253)
-        self._motor_id_input.setValue(1)
-        h.addWidget(self._motor_id_input)
-
-        self._ping_btn = QPushButton("핑 테스트")
+        self._ping_btn = QPushButton("📡 핑 테스트")
         self._ping_btn.clicked.connect(self._ping_motor)
         h.addWidget(self._ping_btn)
-
-        select_btn = QPushButton("선택")
-        select_btn.clicked.connect(self._select_manual_id)
-        h.addWidget(select_btn)
 
         h.addStretch()
         return group
@@ -426,11 +442,10 @@ class MainWindow(QMainWindow):
         _add_shadow(group)
         h = QHBoxLayout(group)
 
-        h.addWidget(QLabel("현재 ID:"))
-        self._id_current_input = QSpinBox()
-        self._id_current_input.setRange(0, 253)
-        self._id_current_input.setValue(1)
-        h.addWidget(self._id_current_input)
+        h.addWidget(QLabel("선택된 모터"))
+        self._id_current_label = QLabel("--")
+        self._id_current_label.setStyleSheet(f"color: {COLOR_ACCENT}; font-weight: bold; font-size: 14px;")
+        h.addWidget(self._id_current_label)
 
         arrow = QLabel("→")
         arrow.setStyleSheet(f"color: {COLOR_ACCENT}; font-size: 16px; font-weight: bold;")
@@ -442,7 +457,7 @@ class MainWindow(QMainWindow):
         self._id_new_input.setValue(1)
         h.addWidget(self._id_new_input)
 
-        self._id_change_btn = QPushButton("ID 변경")
+        self._id_change_btn = QPushButton("✏️ ID 변경")
         self._id_change_btn.clicked.connect(self._change_motor_id)
         h.addWidget(self._id_change_btn)
 
@@ -469,7 +484,7 @@ class MainWindow(QMainWindow):
         self._pos_input.setValue(2048)
         self._pos_input.valueChanged.connect(self._on_pos_input_changed)
         row1.addWidget(self._pos_input)
-        self._move_btn = QPushButton("이동")
+        self._move_btn = QPushButton("▶ 이동")
         self._move_btn.clicked.connect(self._move_motor)
         row1.addWidget(self._move_btn)
         v.addLayout(row1)
@@ -506,12 +521,12 @@ class MainWindow(QMainWindow):
 
         # Buttons
         btn_row = QHBoxLayout()
-        self._torque_btn = QPushButton("토크 ON")
+        self._torque_btn = QPushButton("⚡ 토크 ON")
         self._torque_btn.setCheckable(True)
         self._torque_btn.clicked.connect(self._toggle_torque)
         btn_row.addWidget(self._torque_btn)
 
-        self._stop_btn = QPushButton("정지")
+        self._stop_btn = QPushButton("⏹ 정지")
         self._stop_btn.setObjectName("dangerBtn")
         self._stop_btn.clicked.connect(self._stop_motor)
         btn_row.addWidget(self._stop_btn)
@@ -566,11 +581,11 @@ class MainWindow(QMainWindow):
         v.addLayout(grid)
 
         btn_row = QHBoxLayout()
-        self._monitor_btn = QPushButton("모니터링 시작")
+        self._monitor_btn = QPushButton("📊 모니터링 시작")
         self._monitor_btn.clicked.connect(self._toggle_monitoring)
         btn_row.addWidget(self._monitor_btn)
 
-        self._read_once_btn = QPushButton("1회 읽기")
+        self._read_once_btn = QPushButton("📖 1회 읽기")
         self._read_once_btn.clicked.connect(self._read_status_once)
         btn_row.addWidget(self._read_once_btn)
         btn_row.addStretch()
@@ -593,7 +608,8 @@ class MainWindow(QMainWindow):
     # ── Helpers ──
 
     def _log(self, msg: str):
-        self._log_text.append(msg)
+        if hasattr(self, "_log_text"):
+            self._log_text.append(msg)
 
     def _set_controls_enabled(self, enabled: bool):
         for w in [
@@ -601,33 +617,56 @@ class MainWindow(QMainWindow):
             self._stop_btn, self._torque_btn, self._monitor_btn,
             self._read_once_btn, self._pos_slider, self._pos_input,
             self._speed_slider, self._speed_input, self._accel_slider,
-            self._accel_input, self._motor_combo, self._motor_id_input,
-            self._id_current_input, self._id_new_input, self._id_change_btn,
+            self._accel_input, self._motor_combo,
+            self._id_new_input, self._id_change_btn,
         ]:
             w.setEnabled(enabled)
 
     def _update_status_display(self, status: MotorStatus):
-        self._status_labels["위치"].setText(str(round(status.position)))
-        self._status_labels["속도"].setText(str(round(status.speed)))
-        self._status_labels["온도"].setText(str(round(status.temperature)))
-        self._status_labels["전압"].setText(f"{status.voltage:.1f}")
-        self._status_labels["전류"].setText(f"{round(status.current)}")
-        self._status_labels["부하"].setText(str(round(status.load)))
+        def safe_val(v, fmt="d"):
+            if isinstance(v, tuple):
+                v = v[0] if v else 0
+            if fmt == "d":
+                return str(int(v)) if v is not None else "--"
+            elif fmt == ".1f":
+                return f"{float(v):.1f}" if v is not None else "--"
+            return str(v) if v is not None else "--"
+
+        self._status_labels["위치"].setText(safe_val(status.position))
+        self._status_labels["속도"].setText(safe_val(status.speed))
+        self._status_labels["온도"].setText(safe_val(status.temperature))
+        self._status_labels["전압"].setText(safe_val(status.voltage, ".1f"))
+        self._status_labels["전류"].setText(safe_val(status.current))
+        self._status_labels["부하"].setText(safe_val(status.load))
+
+    def _update_id_setup_label(self):
+        if self._current_motor_id is not None:
+            self._id_current_label.setText(f"ID: {self._current_motor_id}")
+        else:
+            self._id_current_label.setText("--")
 
     # ── Slots ──
 
     def _refresh_ports(self):
         self._port_combo.clear()
         ports = serial.tools.list_ports.comports()
-        for p in ports:
+        usb_port_idx = -1
+        for i, p in enumerate(ports):
             self._port_combo.addItem(f"{p.device} - {p.description}", p.device)
-        if not ports:
+            # USB 시리얼 포트 우선 선택 (ttyACM, ttyUSB, USB 포함)
+            if usb_port_idx < 0 and ("ttyACM" in p.device or "ttyUSB" in p.device or "USB" in p.description):
+                usb_port_idx = i
+        if ports:
+            # USB 포트가 있으면 해당 포트 선택, 없으면 첫 번째
+            self._port_combo.setCurrentIndex(usb_port_idx if usb_port_idx >= 0 else 0)
+            self._log(f"포트 발견: {len(ports)}개")
+        else:
             self._log("시리얼 포트를 찾을 수 없습니다.")
 
     def _toggle_connection(self):
         if self._controller.connected:
             self._controller.disconnect()
-            self._connect_btn.setText("연결")
+            self._connect_btn.setText("🔌 연결")
             self._status_led.setStyleSheet(f"color: {COLOR_DANGER}; font-size: 18px;")
             self._set_controls_enabled(False)
             self._stop_monitoring()
@@ -639,7 +678,7 @@ class MainWindow(QMainWindow):
                 return
             try:
                 self._controller.connect(port)
-                self._connect_btn.setText("연결 해제")
+                self._connect_btn.setText("🔌 연결 해제")
                 self._status_led.setStyleSheet(f"color: {COLOR_SUCCESS}; font-size: 18px;")
                 self._set_controls_enabled(True)
                 self._log(f"연결 성공: {port}")
@@ -665,6 +704,9 @@ class MainWindow(QMainWindow):
                 self._motor_combo.addItem(f"ID: {mid}", mid)
             self._log(f"스캔 완료: {len(ids)}개 모터 발견 {ids}")
             self._scan_btn.setEnabled(True)
+            # 첫 번째 모터 자동 선택
+            if ids:
+                self._motor_combo.setCurrentIndex(0)
 
         self._scan_worker.found.connect(on_found)
         self._scan_worker.start()
@@ -673,42 +715,56 @@ class MainWindow(QMainWindow):
         idx = self._motor_combo.currentIndex()
         if idx >= 0:
             self._current_motor_id = self._motor_combo.currentData()
+            self._update_id_setup_label()
             self._log(f"모터 선택: ID {self._current_motor_id}")
 
-    def _select_manual_id(self):
-        mid = self._motor_id_input.value()
-        self._current_motor_id = mid
-        self._log(f"모터 수동 선택: ID {mid}")
-
     def _change_motor_id(self):
-        current_id = self._id_current_input.value()
+        # 스캔된 모터가 없으면 경고
+        if self._current_motor_id is None:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("모터 미선택")
+            msg.setText("모터가 선택되지 않았습니다.\n\n먼저 모터 스캔을 실행하여 모터를 선택하세요.")
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+            msg.exec()
+            return
+
+        current_id = self._current_motor_id
         new_id = self._id_new_input.value()
+
         if current_id == new_id:
             self._log("현재 ID와 새 ID가 동일합니다.")
             return
+
+        # 확인 다이얼로그
         reply = QMessageBox.question(
             self,
             "ID 변경 확인",
-            f"모터 ID를 {current_id} → {new_id} 로 변경하시겠습니까?\n"
-            "변경 후 모터를 재스캔해야 합니다.",
+            f"모터 ID를 변경하시겠습니까?\n현재 ID: {current_id} → 새 ID: {new_id}",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
+
         try:
             self._controller.change_id(current_id, new_id)
             self._log(f"ID 변경 성공: {current_id} → {new_id}")
-            if self._current_motor_id == current_id:
-                self._current_motor_id = new_id
-                self._log(f"현재 선택 모터가 ID {new_id}로 업데이트됨")
+            self._current_motor_id = new_id
+            self._update_id_setup_label()
+            # 모터 콤보 갱신 권장
+            self._log("모터 재스캔을 권장합니다.")
         except Exception as e:
             self._log(f"ID 변경 실패: {e}")
 
     def _ping_motor(self):
-        mid = self._motor_id_input.value()
+        if self._current_motor_id is None:
+            self._log("모터를 먼저 선택하세요.")
+            return
+        mid = self._current_motor_id
         try:
             result = self._controller.ping(mid)
-            self._log(f"핑 ID {mid}: {'응답 있음' if result else '응답 없음'}")
+            self._log(f"핑 ID {mid}: {'응답 있음 ✓' if result else '응답 없음 ✗'}")
         except Exception as e:
             self._log(f"핑 실패: {e}")
 
@@ -771,7 +827,7 @@ class MainWindow(QMainWindow):
         enable = self._torque_btn.isChecked()
         try:
             self._controller.set_torque(self._current_motor_id, enable)
-            self._torque_btn.setText("토크 OFF" if enable else "토크 ON")
+            self._torque_btn.setText("⚡ 토크 OFF" if enable else "⚡ 토크 ON")
             self._log(f"ID {self._current_motor_id} 토크 {'ON' if enable else 'OFF'}")
         except Exception as e:
             self._log(f"토크 설정 실패: {e}")
@@ -788,13 +844,13 @@ class MainWindow(QMainWindow):
             self._log("모터를 먼저 선택하세요.")
             return
         self._monitoring = True
-        self._monitor_btn.setText("모니터링 중지")
+        self._monitor_btn.setText("📊 모니터링 중지")
         self._poll_timer.start(200)
         self._log("모니터링 시작")
 
     def _stop_monitoring(self):
         self._monitoring = False
-        self._monitor_btn.setText("모니터링 시작")
+        self._monitor_btn.setText("📊 모니터링 시작")
         self._poll_timer.stop()
         self._log("모니터링 중지")
 
@@ -814,11 +870,13 @@ class MainWindow(QMainWindow):
         try:
             status = self._controller.read_status(self._current_motor_id)
             self._update_status_display(status)
+            def get_val(v):
+                return v[0] if isinstance(v, tuple) else v
             self._log(
                 f"ID {self._current_motor_id} 상태: "
-                f"위치={status.position}, 속도={status.speed}, "
-                f"온도={status.temperature}°C, 전압={status.voltage:.1f}V, "
-                f"전류={round(status.current)}mA, 부하={status.load}%"
+                f"위치={get_val(status.position)}, 속도={get_val(status.speed)}, "
+                f"온도={get_val(status.temperature)}°C, 전압={get_val(status.voltage)}V, "
+                f"전류={get_val(status.current)}mA, 부하={get_val(status.load)}%"
             )
         except Exception as e:
             self._log(f"상태 읽기 실패: {e}")
